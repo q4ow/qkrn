@@ -1,21 +1,14 @@
-# Build artifacts
 bin/
 build/
 
-# Go build cache
 .cache/
 
-# IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# OS files
 .DS_Store
 Thumbs.db
 
-# Project documentation (keeping for development)
-project.md
 .github/copilot-instructions.md
-scripts
