@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	cfg := config.ParseFlags()
+	cfg := config.LoadConfig()
 	log.Printf("Starting qkrn with config: %s", cfg)
 
 	if cfg.AuthEnabled && cfg.APIKey == "" {
