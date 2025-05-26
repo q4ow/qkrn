@@ -1,11 +1,56 @@
 # qkrn API Documentation
 
 ## Overview
-qkrn provides a simple HTTP REST API for key-value operations.
+qkrn provides a simple HTTP REST API for key-value operations with optional API key authentication.
 
 ## Base URL
 ```
 http://localhost:8080
+```
+
+## Authentication
+qkrn supports optional API key authentication. When authentication is enabled, all endpoints except `/`, `/health` require a valid API key.
+
+### Authentication Methods
+1. **Bearer Token** (Recommended): Include in `Authorization` header
+   ```
+   Authorization: Bearer YOUR_API_KEY
+   ```
+
+2. **X-API-Key Header**: Include in custom header
+   ```
+   X-API-Key: YOUR_API_KEY
+   ```
+
+3. **Query Parameter**: Include as URL parameter (less secure)
+   ```
+   ?api_key=YOUR_API_KEY
+   ```
+
+### Enabling Authentication
+Start the server with authentication enabled:
+```bash
+# With a specific API key
+./qkrn --auth-enabled --api-key "your-secure-api-key"
+
+# Auto-generate a secure API key
+./qkrn --auth-enabled
+```
+
+### Error Responses
+When authentication fails, you'll receive:
+```json
+{
+  "success": false,
+  "error": "Missing authentication token"
+}
+```
+or
+```json
+{
+  "success": false,
+  "error": "Invalid authentication token"
+}
 ```
 
 ## Endpoints
@@ -13,14 +58,25 @@ http://localhost:8080
 ### Service Information
 
 #### GET /
-Returns basic service information.
+Returns basic service information including authentication status.
 
 **Response:**
 ```json
 {
   "service": "qkrn",
   "version": "0.1.0",
-  "status": "running"
+  "status": "running",
+  "authentication": false
+}
+```
+
+When authentication is enabled:
+```json
+{
+  "service": "qkrn",
+  "version": "0.1.0",
+  "status": "running",
+  "authentication": true
 }
 ```
 
@@ -113,7 +169,15 @@ List all keys in the store.
 
 ### Using curl
 
-Store a value:
+Store a value (with authentication):
+```bash
+curl -X PUT http://localhost:8080/kv/hello \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"value":"world"}'
+```
+
+Store a value (without authentication, if disabled):
 ```bash
 curl -X PUT http://localhost:8080/kv/hello \
   -H "Content-Type: application/json" \
@@ -122,17 +186,29 @@ curl -X PUT http://localhost:8080/kv/hello \
 
 Retrieve a value:
 ```bash
-curl http://localhost:8080/kv/hello
+curl -H "Authorization: Bearer YOUR_API_KEY" \
+  http://localhost:8080/kv/hello
 ```
 
 List all keys:
 ```bash
-curl http://localhost:8080/keys
+curl -H "Authorization: Bearer YOUR_API_KEY" \
+  http://localhost:8080/keys
 ```
 
 Delete a key:
 ```bash
-curl -X DELETE http://localhost:8080/kv/hello
+curl -X DELETE \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  http://localhost:8080/kv/hello
+```
+
+Using X-API-Key header:
+```bash
+curl -X PUT http://localhost:8080/kv/hello \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"value":"world"}'
 ```
 
 ## Error Codes
@@ -140,6 +216,15 @@ curl -X DELETE http://localhost:8080/kv/hello
 - `200` - Success
 - `201` - Created (for PUT operations)
 - `400` - Bad Request (invalid JSON, empty key)
+- `401` - Unauthorized (missing or invalid authentication token)
 - `404` - Not Found (key doesn't exist)
 - `405` - Method Not Allowed
 - `500` - Internal Server Error
+
+## Security Notes
+
+- API keys should be kept secure and not exposed in logs or URLs when possible
+- Use HTTPS in production environments
+- The Bearer token method is preferred over query parameters
+- API keys are generated using cryptographically secure random number generation
+- Token validation uses constant-time comparison to prevent timing attacks

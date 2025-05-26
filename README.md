@@ -1,27 +1,26 @@
 # qkrn - Distributed Key-Value Store
 
-A simple, distributed key-value store implemented in Go with HTTP API support.
+A simple, ephemeral key-value store implemented in Go designed with REST in mind
 
 ## Features
 
 - **Thread-safe in-memory storage** with concurrent read/write support
 - **HTTP REST API** for easy client integration
+- **API Key Authentication** with secure token generation and validation
 - **Configurable server settings** via command-line flags
-- **Graceful shutdown** handling
-- **Comprehensive testing** with unit tests and API tests
+- **Gracefully handles** interruptions and poweroff signals
 
 ## Quick Start
 
 ### Prerequisites
 
-- Go 1.24.3 or later
-- `make` (optional, for using Makefile targets)
+- Go (any stable version should work)
 
 ### Installation
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/q4ow/qkrn
    cd qkrn
    ```
 
@@ -46,38 +45,57 @@ The server starts on `localhost:8080` by default. You can configure it using com
 ```bash
 ./bin/qkrn --help
 Usage of ./bin/qkrn:
-  -address string
-        Node address (default "localhost")
-  -log-level string
-        Log level (debug, info, warn, error) (default "info")
-  -node-id string
-        Node ID (default hostname)
-  -port int
-        Node port (default 8080)
+    ...
+```
+
+### Authentication
+
+qkrn supports optional API key authentication:
+
+```bash
+# Start with authentication enabled and auto-generate API key
+./bin/qkrn --auth-enabled
+
+# Start with specific API key
+./bin/qkrn --auth-enabled --api-key "your-secure-api-key"
+
+# Start without authentication (default)
+./bin/qkrn
 ```
 
 ### API Examples
 
 Store a key-value pair:
 ```bash
+# Without authentication
 curl -X PUT http://localhost:8080/kv/hello \
+  -H "Content-Type: application/json" \
+  -d '{"value":"world"}'
+
+# With authentication
+curl -X PUT http://localhost:8080/kv/hello \
+  -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"value":"world"}'
 ```
 
 Retrieve a value:
 ```bash
-curl http://localhost:8080/kv/hello
+curl -H "Authorization: Bearer YOUR_API_KEY" \
+  http://localhost:8080/kv/hello
 ```
 
 List all keys:
 ```bash
-curl http://localhost:8080/keys
+curl -H "Authorization: Bearer YOUR_API_KEY" \
+  http://localhost:8080/keys
 ```
 
 Delete a key:
 ```bash
-curl -X DELETE http://localhost:8080/kv/hello
+curl -X DELETE \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  http://localhost:8080/kv/hello
 ```
 
 ## Development
@@ -89,6 +107,7 @@ qkrn/
 ├── cmd/qkrn/           # Main application entry point
 ├── internal/           # Private application code
 │   ├── api/            # HTTP API server
+│   ├── auth/           # Authentication middleware and utilities
 │   ├── config/         # Configuration management
 │   └── store/          # Key-value store implementation
 ├── pkg/types/          # Public types and interfaces
@@ -96,16 +115,6 @@ qkrn/
 ├── scripts/           # Utility scripts
 └── bin/               # Build artifacts
 ```
-
-### Available Make Targets
-
-- `make build` - Build the application
-- `make run` - Run the application
-- `make test` - Run unit tests
-- `make test-api` - Run API integration tests (requires server running)
-- `make check` - Run all checks (format, vet, test)
-- `make clean` - Clean build artifacts
-- `make release` - Build release binaries for Linux and macOS
 
 ### Running Tests
 
@@ -133,18 +142,11 @@ The project follows Go best practices:
 - Thread-safe concurrent operations
 - Proper error handling
 
-## Architecture
-
-The current implementation provides a foundation for a distributed key-value store:
-
-- **Store Layer** (`internal/store`): Thread-safe in-memory storage
-- **API Layer** (`internal/api`): HTTP REST API server
-- **Configuration** (`internal/config`): Command-line flag parsing
-- **Types** (`pkg/types`): Shared interfaces and data structures
+CI can only do so much, please be nice in your pull requests :)
 
 ## Roadmap
 
-This is the initial implementation focusing on a single-node key-value store. Future enhancements will include:
+This is just the beginning, I have much more planned for the future of qkrn:
 
 1. **Multi-node replication** - Data replication across multiple nodes
 2. **Node discovery** - Automatic peer discovery and cluster formation
@@ -152,14 +154,12 @@ This is the initial implementation focusing on a single-node key-value store. Fu
 4. **Persistent storage** - Add disk-based storage options
 5. **Advanced features** - Authentication, encryption, monitoring
 
-See `project.md` for detailed project goals and architecture plans.
-
 ## Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Run tests (`make check`)
+4. Run tests and other make targets
 5. Submit a pull request
 
 ## License
