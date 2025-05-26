@@ -3,8 +3,11 @@ package types
 import "errors"
 
 var (
-	ErrKeyNotFound = errors.New("key not found")
-	ErrEmptyKey    = errors.New("key cannot be empty")
+	ErrKeyNotFound  = errors.New("key not found")
+	ErrEmptyKey     = errors.New("key cannot be empty")
+	ErrUnauthorized = errors.New("unauthorized")
+	ErrInvalidToken = errors.New("invalid authentication token")
+	ErrMissingToken = errors.New("missing authentication token")
 )
 
 type Store interface {
@@ -29,4 +32,13 @@ type Response struct {
 	Success bool   `json:"success"`
 	Value   string `json:"value,omitempty"`
 	Error   string `json:"error,omitempty"`
+}
+
+type AuthRequest struct {
+	Token string `json:"token,omitempty"`
+}
+
+type AuthResponse struct {
+	Success bool   `json:"success"`
+	Message string `json:"message,omitempty"`
 }

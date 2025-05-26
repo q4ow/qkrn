@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/q4ow/qkrn/internal/auth"
 	"github.com/q4ow/qkrn/pkg/types"
 )
 
@@ -14,13 +15,15 @@ type Server struct {
 	store  types.Store
 	port   int
 	server *http.ServeMux
+	auth   *auth.Authenticator
 }
 
-func NewServer(store types.Store, port int) *Server {
+func NewServer(store types.Store, port int, authenticator *auth.Authenticator) *Server {
 	s := &Server{
 		store:  store,
 		port:   port,
 		server: http.NewServeMux(),
+		auth:   authenticator,
 	}
 
 	s.setupRoutes()
@@ -30,8 +33,8 @@ func NewServer(store types.Store, port int) *Server {
 func (s *Server) setupRoutes() {
 	s.server.HandleFunc("/", s.handleRoot)
 	s.server.HandleFunc("/health", s.handleHealth)
-	s.server.HandleFunc("/keys", s.handleKeys)
-	s.server.HandleFunc("/kv/", s.handleKeyValue)
+	s.server.HandleFunc("/keys", s.auth.Middleware(s.handleKeys))
+	s.server.HandleFunc("/kv/", s.auth.Middleware(s.handleKeyValue))
 }
 
 func (s *Server) Start() error {
@@ -46,10 +49,11 @@ func (s *Server) handleRoot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := map[string]string{
-		"service": "qkrn",
-		"version": "0.1.0",
-		"status":  "running",
+	response := map[string]interface{}{
+		"service":        "qkrn",
+		"version":        "0.1.0",
+		"status":         "running",
+		"authentication": s.auth.IsEnabled(),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
