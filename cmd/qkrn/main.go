@@ -14,7 +14,6 @@ import (
 
 func main() {
 	cfg := config.LoadConfig()
-	log.Printf("Starting qkrn with config: %s", cfg)
 
 	if cfg.AuthEnabled && cfg.APIKey == "" {
 		generatedKey, err := auth.GenerateAPIKey()
@@ -27,16 +26,12 @@ func main() {
 	}
 
 	kvStore := store.NewMemoryStore()
-	log.Printf("Initialized memory store")
 
 	authenticator := auth.NewAuthenticator(cfg.AuthEnabled, cfg.APIKey)
 	if cfg.AuthEnabled {
-		log.Printf("Authentication enabled")
 		if !authenticator.HasValidKey() {
 			log.Printf("WARNING: Authentication enabled but no valid API key configured")
 		}
-	} else {
-		log.Printf("Authentication disabled")
 	}
 
 	server := api.NewServer(kvStore, cfg.Port, authenticator)
@@ -50,6 +45,4 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-
-	log.Println("Shutting down server...")
 }

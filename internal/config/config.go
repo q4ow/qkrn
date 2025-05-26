@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 )
@@ -72,13 +73,17 @@ func LoadFromFile(filename string) (*Config, error) {
 }
 
 func LoadConfig() *Config {
+	return LoadConfigWithArgs(os.Args[1:])
+}
+
+func LoadConfigWithArgs(args []string) *Config {
 	configFile := ""
 	exportConfig := false
 
-	for i, arg := range os.Args[1:] {
+	for i, arg := range args {
 		if arg == "--config" || arg == "-config" {
-			if i+1 < len(os.Args[1:]) {
-				configFile = os.Args[i+2]
+			if i+1 < len(args) {
+				configFile = args[i+1]
 			}
 		}
 		if arg == "--export-config" || arg == "-export-config" {
@@ -93,13 +98,11 @@ func LoadConfig() *Config {
 			fmt.Fprintf(os.Stderr, "Error loading config file %s: %v\n", configFile, err)
 			os.Exit(1)
 		} else {
-			fmt.Printf("Loaded configuration from: %s\n", configFile)
 			cfg = fileCfg
 		}
 	} else {
 		for _, configPath := range GetConfigPaths() {
 			if fileCfg, err := LoadFromFile(configPath); err == nil {
-				fmt.Printf("Loaded configuration from: %s\n", configPath)
 				cfg = fileCfg
 				break
 			}
@@ -107,6 +110,15 @@ func LoadConfig() *Config {
 	}
 
 	if exportConfig {
+		if err := cfg.ExportToFile("./config.toml"); err != nil {
+			fmt.Fprintf(os.Stderr, "Error exporting config: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("Configuration exported to ./config.toml")
+		os.Exit(0)
+	}
+
+	if !isTestEnvironment() {
 		flag.StringVar(&cfg.NodeID, "node-id", cfg.NodeID, "Node ID")
 		flag.StringVar(&cfg.Address, "address", cfg.Address, "Node address")
 		flag.IntVar(&cfg.Port, "port", cfg.Port, "Node port")
@@ -117,27 +129,18 @@ func LoadConfig() *Config {
 		flag.BoolVar(&exportConfig, "export-config", false, "Export current configuration to ./config.toml")
 
 		flag.Parse()
-
-		if err := cfg.ExportToFile("./config.toml"); err != nil {
-			fmt.Fprintf(os.Stderr, "Error exporting config: %v\n", err)
-			os.Exit(1)
-		}
-		fmt.Println("Configuration exported to ./config.toml")
-		os.Exit(0)
 	}
 
-	flag.StringVar(&cfg.NodeID, "node-id", cfg.NodeID, "Node ID")
-	flag.StringVar(&cfg.Address, "address", cfg.Address, "Node address")
-	flag.IntVar(&cfg.Port, "port", cfg.Port, "Node port")
-	flag.StringVar(&cfg.LogLevel, "log-level", cfg.LogLevel, "Log level (debug, info, warn, error)")
-	flag.BoolVar(&cfg.AuthEnabled, "auth-enabled", cfg.AuthEnabled, "Enable authentication")
-	flag.StringVar(&cfg.APIKey, "api-key", cfg.APIKey, "API key for authentication")
-	flag.StringVar(&configFile, "config", "", "Path to config file")
-	flag.BoolVar(&exportConfig, "export-config", false, "Export current configuration to ./config.toml")
-
-	flag.Parse()
-
 	return cfg
+}
+
+func isTestEnvironment() bool {
+	for _, arg := range os.Args {
+		if strings.Contains(arg, "test") || strings.Contains(arg, ".test") {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *Config) ExportToFile(filename string) error {

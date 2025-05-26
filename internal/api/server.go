@@ -49,6 +49,11 @@ func (s *Server) handleRoot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	response := map[string]interface{}{
 		"service":        "qkrn",
 		"version":        "0.1.0",
@@ -110,7 +115,7 @@ func (s *Server) handleKeyValue(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) handleGet(w http.ResponseWriter, r *http.Request, key string) {
+func (s *Server) handleGet(w http.ResponseWriter, _ *http.Request, key string) {
 	value, err := s.store.Get(key)
 	if err != nil {
 		if err == types.ErrKeyNotFound {
@@ -151,7 +156,7 @@ func (s *Server) handleSet(w http.ResponseWriter, r *http.Request, key string) {
 	json.NewEncoder(w).Encode(response)
 }
 
-func (s *Server) handleDelete(w http.ResponseWriter, r *http.Request, key string) {
+func (s *Server) handleDelete(w http.ResponseWriter, _ *http.Request, key string) {
 	if err := s.store.Delete(key); err != nil {
 		if err == types.ErrKeyNotFound {
 			s.sendErrorResponse(w, "Key not found", http.StatusNotFound)
